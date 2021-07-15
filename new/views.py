@@ -9,12 +9,10 @@ from django import forms
 from .forms import UserRegistration, PriForm
 from .models import Usermodel, Privillages
 from django.db import connection
-#g
+
 #to add pri
 def add_pri(request):
-    print(request.session.get('user'),'          bjkebskjb')
     if request.session.get('user') == 'nirmal':
-        
         if request.method == 'POST':
             fm = PriForm(request.POST)
             if fm.is_valid():
@@ -45,7 +43,6 @@ def add_show(request):
 
 
         else:
-
             fm = UserRegistration()
         stud = Usermodel.objects.all()
 
@@ -93,6 +90,27 @@ def update_data(request,id):
         fm = UserRegistration(instance=pi)
     return render(request,'update.html', {'form' : fm})
 
+def home(request):
+    data = Usermodel.objects.all()
+    pri = Privillages.objects.all()
+    type = ''
+    for i in Usermodel.objects.filter(user_name=request.session.get('user')):
+        type = i.user_type
+    if type == 'admin':
+        data = Usermodel.objects.exclude(user_type=type)
+    else:
+        data = Usermodel.objects.filter(user_type=type)
+    if request.method == 'POST':
+        user_name = request.POST['users']
+        pri_list = request.POST.getlist('d[]')
+        #print(user_name)
+        #print(pri_list)
+        obj = Usermodel.objects.get(user_name=user_name)
+        obj.pri = ''
+        obj.pri = pri_list
+        obj.save()
+    return render(request, 'result.html',{'data':data,'type':type,'pri':pri})
+    
 
 def validate(request):
     #request.session['user'] = m.id
@@ -111,35 +129,25 @@ def validate(request):
     obj.pri = pri_data
     flag = True
     if request.method == 'POST':
-        
+        #return redirect('home')
         #print('user is ',request.POST['users'])
-        try:
-            request.session['user'] = request.POST['username']
-            if str(request.POST['username']) + str(request.POST['pass']) in result:
-                type = ''
-                for i in Usermodel.objects.filter(user_name=request.POST['username']):
-                    type = i.user_type
-                print(type)
-                if type == 'admin':
-                    data = Usermodel.objects.exclude(user_type=type)
-                else:
-                    data = Usermodel.objects.filter(user_type=type)
-                return render(request, 'result.html',{'data':data,'type':type,'pri':pri})
+        #try:
+        request.session['user'] = request.POST['username']
+        if str(request.POST['username']) + str(request.POST['pass']) in result:
+            type = ''
+            for i in Usermodel.objects.filter(user_name=request.POST['username']):
+                type = i.user_type
+            print(type)
+            if type == 'admin':
+                data = Usermodel.objects.exclude(user_type=type)
             else:
-                return render(request, '401.html')
-        except:
-            flag = False
-            user_name = request.POST['users']
-            pri_list = request.POST.getlist('d[]')
-            #print(user_name)
-            #print(pri_list)
-            obj = Usermodel.objects.get(user_name=user_name)
-            obj.pri = ''
-            obj.pri = pri_list
-            obj.save()
-    #if flag: 
-    
-    return render(request, 'index.html')    
+                data = Usermodel.objects.filter(user_type=type)
+            #return render(request, 'result.html',{'data':data,'type':type,'pri':pri})
+            return redirect('home')
+        else:
+            #return render(request, 'result.html',{'ans':'User Name or Passwor is Invailid'})
+            return render(request, '401.html')
+    return render(request, 'index.html')
 
 def error_404(request , exception):
     return render(request , '404_page.html')
